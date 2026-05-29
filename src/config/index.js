@@ -39,7 +39,17 @@
 // Load `.env` (if present) into `process.env` BEFORE any process.env read so
 // that the fallbacks below correctly observe `.env`-provided values. The
 // `.env` file itself is git-ignored; `.env.example` documents the contract.
-require('dotenv').config();
+//
+// `quiet: true` suppresses dotenv v17's unstructured runtime banner (e.g.
+// `◇ injected env (N) from .env // tip: ...`) that would otherwise be
+// emitted directly to stdout via `console.log`, bypassing the project's
+// winston/morgan structured-logging surface. This preserves the AAP §0.7
+// R7 "structured logging" guarantee — winston remains the sole observable
+// surface for application output, including this module's startup phase.
+// The option only gates the runtime banner; env-population semantics,
+// `process.env` side effects, return value shape, and error handling are
+// all unchanged. Reference: dotenv 17.x `{ quiet: true }` option.
+require('dotenv').config({ quiet: true });
 
 module.exports = {
   host: process.env.HOST || '127.0.0.1',
