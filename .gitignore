@@ -1,45 +1,62 @@
+# =============================================================================
+# .gitignore — hello_world (Node.js / Express service)
+# -----------------------------------------------------------------------------
+# Excludes generated, secret, log, and OS/editor artifacts produced by the
+# Express + dotenv + winston + PM2 + Jest toolchain. Patterns are intentionally
+# precise so source files, manifests, and the `.env.example` template remain
+# tracked. One pattern per line; comments begin with `#`.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
 # Dependencies
+# -----------------------------------------------------------------------------
+# Installed by `npm install` from package.json + package-lock.json. Never
+# committed; reproducible from the lockfile.
 node_modules/
 
-# Environment files (keep .env.example committed)
+# -----------------------------------------------------------------------------
+# Environment files
+# -----------------------------------------------------------------------------
+# Local secrets / per-environment overrides loaded by `dotenv` in
+# `src/config/index.js`. The `.env.example` template MUST stay tracked, so we
+# exclude it from the ignore set with an explicit re-include (`!`) — this is
+# defensive in case any future broader pattern (e.g. `.env*`) is introduced.
 .env
 .env.local
 .env.*.local
+!.env.example
 
+# -----------------------------------------------------------------------------
 # Logs
+# -----------------------------------------------------------------------------
+# Runtime/PM2 log directory (PM2 `error_file` / `out_file` per
+# `ecosystem.config.js`) and general log files emitted by winston/npm.
 logs/
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
-# PM2
+# -----------------------------------------------------------------------------
+# PM2 runtime state
+# -----------------------------------------------------------------------------
+# PM2's per-user runtime directory (PID files, module state). Distinct from
+# the app's `logs/` directory above.
 .pm2/
-pm2.log
-pm2-error.log
-pm2-out.log
 
-# Test coverage
+# -----------------------------------------------------------------------------
+# Test coverage (Jest)
+# -----------------------------------------------------------------------------
 coverage/
-.nyc_output/
 
-# Build artifacts
-dist/
-build/
+# -----------------------------------------------------------------------------
+# OS noise
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
 
-# Editor / OS
+# -----------------------------------------------------------------------------
+# Editor / IDE noise
+# -----------------------------------------------------------------------------
 .vscode/
 .idea/
 *.swp
 *.swo
-.DS_Store
-Thumbs.db
-
-# npm/yarn cache
-.npm/
-.yarn/
-.eslintcache
-
-# Optional npm package lock backups
-package-lock.json.bak
