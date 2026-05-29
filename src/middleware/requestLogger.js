@@ -25,9 +25,17 @@
  * newline. The shared `logger.stream` exposed by `src/utils/logger.js` is
  * exactly that stream — its `write(message)` implementation trims the
  * trailing newline (winston adds its own) and forwards the line through the
- * winston logger at the `http` level, so HTTP access records share the
+ * winston logger at the `info` level, so HTTP access records share the
  * same Console (and any future File) transports as the application's
- * `info`, `error`, etc. records but remain distinguishable by level.
+ * other `info`, `error`, etc. records. Emitting at `info` (rather than
+ * winston's `http` level) ensures the access lines remain observable under
+ * the documented default `LOG_LEVEL=info` — `http` records are filtered out
+ * at that threshold under winston's npm levels, so routing morgan through
+ * `info` is what keeps the observability mandate (AAP §0.1.2) intact. The
+ * full rationale lives at the `logger.stream` definition in
+ * `src/utils/logger.js`; access records remain identifiable by their
+ * Apache-combined line format, so no information is lost by sharing the
+ * `info` severity bucket.
  *
  * Format choice — "combined"
  * --------------------------
@@ -77,10 +85,13 @@ const morgan = require('morgan');
 // this file's location (`src/middleware/requestLogger.js`) up to `src/` and
 // down into `src/utils/logger.js`. The module exports the bare winston
 // logger, and crucially attaches a `.stream` property of the shape
-// `{ write: (message) => logger.http(message.trim()) }` which is the
-// contract `morgan` expects on its `stream` option (AAP §0.5.2). Reusing
-// this single logger instance — rather than instantiating a new one here —
-// keeps all log output flowing through one set of transports.
+// `{ write: (message) => logger.info(message.trim()) }` which is the
+// contract `morgan` expects on its `stream` option (AAP §0.5.2). The
+// `.info` routing (rather than `.http`) keeps access logs visible under
+// the documented default `LOG_LEVEL=info`; see `src/utils/logger.js` for
+// the level-priority rationale. Reusing this single logger instance —
+// rather than instantiating a new one here — keeps all log output flowing
+// through one set of transports.
 const logger = require('../utils/logger');
 
 // Build and export the morgan middleware in a single statement. The

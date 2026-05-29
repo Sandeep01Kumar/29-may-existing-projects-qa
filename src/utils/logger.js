@@ -36,8 +36,12 @@
  *   const logger = require('../utils/logger');      // siblings/children
  *
  * Required members exposed by the export:
- *   - logger.info(...)   — startup line + graceful-shutdown messages in server.js
- *   - logger.http(...)   — invoked internally by logger.stream.write
+ *   - logger.info(...)   — startup line + graceful-shutdown messages in
+ *                          server.js AND the level used internally by
+ *                          logger.stream.write for HTTP access lines
+ *                          (chosen so morgan output is visible under the
+ *                          documented default LOG_LEVEL=info — see the
+ *                          inline rationale at logger.stream below)
  *   - logger.error(...)  — used by src/middleware/errorHandler.js
  *   - logger.warn(...)   — standard winston level (general consumer use)
  *   - logger.debug(...)  — standard winston level (general consumer use)
@@ -70,11 +74,35 @@ const logger = winston.createLogger({
 
 // Morgan calls `stream.write(message)` with a trailing newline for each
 // HTTP access line. We trim that newline (winston adds its own) and route
-// the line through the logger's `http` level so HTTP access logs share
-// the same transport configuration as application logs while remaining
-// distinguishable by level.
+// the line through the logger's `info` level so HTTP access logs share
+// the same transport configuration as application logs.
+//
+// Why `info` and not `http`?
+// --------------------------
+// In winston's default npm levels, the level-priority ordering is
+//
+//   error (0) < warn (1) < info (2) < http (3) < verbose (4) < debug (5) < silly (6)
+//
+// and a logger configured at level X emits records whose priority is <= X.
+// The documented default `LOG_LEVEL=info` (priority 2) therefore SUPPRESSES
+// any record emitted at the `http` level (priority 3) — every `logger.http`
+// call gets filtered before reaching the Console transport. Routing morgan's
+// stream through `logger.http(...)` under the default configuration would
+// therefore silently disable HTTP access logging, contradicting the project
+// rule (AAP §0.1.2) that mandates observable logging.
+//
+// Emitting at `info` instead guarantees that access logs flow through the
+// transport whenever the user-configured `LOG_LEVEL` is at or above `info`
+// — which is the documented default and every reasonable production
+// setting. Operators who explicitly suppress info-level output
+// (`LOG_LEVEL=warn` or `LOG_LEVEL=error`) deliberately opt out of access
+// logging together with application info logs, which is the intended
+// semantics. The semantic distinction between "HTTP access" and
+// "application info" is preserved by the morgan-formatted message content
+// itself (Apache "combined" lines are unambiguously access records), so no
+// information is lost by sharing the `info` severity bucket.
 logger.stream = {
-  write: (message) => logger.http(message.trim())
+  write: (message) => logger.info(message.trim())
 };
 
 module.exports = logger;
